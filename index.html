@@ -1,463 +1,437 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Green Grocers Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Green Grocers</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/tone"></script>
   <style>
-    /* Custom scrollbar for output */
+    /* Scrollbar styling for output */
     #output::-webkit-scrollbar {
       width: 8px;
     }
     #output::-webkit-scrollbar-track {
-      background-color: #f1f5f9;
-      border-radius: 4px;
+      background: #f1f5f9;
     }
     #output::-webkit-scrollbar-thumb {
-      background-color: #9ca3af;
+      background: #9ca3af;
       border-radius: 4px;
     }
     #output::-webkit-scrollbar-thumb:hover {
-      background-color: #6b7280;
+      background: #6b7280;
     }
     .notification {
       position: fixed;
       top: 20px;
       right: 20px;
-      background-color: #f0fdf4;
+      background: #f0fdf4;
       color: #15803d;
       padding: 16px;
       margin-bottom: 8px;
       border-left: 4px solid #16a34a;
       border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       animation: slideIn 0.3s ease-out, slideOut 0.3s 2.5s ease-in forwards;
       opacity: 1;
-      transition: opacity 0.3s ease-in-out;
     }
     .notification.warning {
-      background-color: #fefce8;
+      background: #fefce8;
       color: #854d0e;
       border-left-color: #fcd34d;
     }
     .notification.error {
-      background-color: #fee2e2;
+      background: #fee2e2;
       color: #991b1b;
       border-left-color: #b91c1c;
     }
     @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
     @keyframes slideOut {
-      from {
-        transform: translateX(0);
-        opacity: 1;
-      }
-      to {
-        transform: translateX(100%);
-        opacity: 0;
-      }
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
     }
   </style>
 </head>
 <body class="bg-green-50 text-gray-800 font-sans">
-  <div class="max-w-7xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600 col-span-3 mb-6">
-      <h1 class="text-3xl font-bold mb-4 text-center text-green-700">Green Grocers</h1>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-        <div class="bg-green-100 p-4 rounded-lg shadow-sm hover:shadow-md transition duration-300">
-          <h2 class="text-xl font-semibold text-green-700">Total Products</h2>
-          <p id="totalProducts" class="text-2xl font-bold text-gray-800">0</p>
+
+  <div id="notification-area" class="fixed top-4 right-4 z-50 flex flex-col items-end space-y-2">
+    </div>
+
+  <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 grid grid-cols-1 gap-6">
+
+    <div class="bg-white shadow overflow-hidden rounded-md">
+      <div class="px-4 py-5 sm:p-6">
+        <h1 class="text-3xl font-bold mb-4 text-center text-green-700">Green Grocers</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div class="bg-green-100 p-4 rounded-md shadow-sm hover:shadow-md transition duration-200">
+            <h2 class="text-lg font-semibold text-green-700">Total Products</h2>
+            <p id="totalProducts" class="text-2xl font-bold text-green-800">0</p>
+          </div>
+          <div class="bg-orange-100 p-4 rounded-md shadow-sm hover:shadow-md transition duration-200">
+            <h2 class="text-lg font-semibold text-orange-700">Low Stock Items</h2>
+            <p id="lowStockCount" class="text-2xl font-bold text-orange-800">0</p>
+          </div>
+          <div class="bg-yellow-100 p-4 rounded-md shadow-sm hover:shadow-md transition duration-200">
+            <h2 class="text-lg font-semibold text-yellow-700">Expiring Soon (7 Days)</h2>
+            <p id="expiringSoonCount" class="text-2xl font-bold text-yellow-800">0</p>
+          </div>
         </div>
-        <div class="bg-orange-100 p-4 rounded-lg shadow-sm hover:shadow-md transition duration-300">
-          <h2 class="text-xl font-semibold text-orange-700">Low Stock Items</h2>
-          <p id="lowStockCount" class="text-2xl font-bold text-gray-800">0</p>
+      </div>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden rounded-md">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800">Product Management</h2>
+        <div class="mb-4">
+          <input id="productId" placeholder="Product ID (for update/delete)" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
         </div>
-        <div class="bg-yellow-100 p-4 rounded-lg shadow-sm hover:shadow-md transition duration-300">
-          <h2 class="text-xl font-semibold text-yellow-700">Expiring Soon (7 Days)</h2>
-          <p id="expiringSoonCount" class="text-2xl font-bold text-gray-800">0</p>
+        <div class="grid grid-cols-1 gap-4 mb-4">
+          <input id="productName" placeholder="Product Name" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          <input id="productQty" placeholder="Quantity" type="number" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          <input id="productPrice" placeholder="Price" type="number" step="0.01" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          <input id="expiryDate" placeholder="Expiry Date" type="date" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+        </div>
+        <div class="flex gap-2">
+          <button onclick="addOrUpdateProduct()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add/Update</button>
+          <button onclick="deleteProduct()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Delete</button>
         </div>
       </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
-      <h2 class="text-xl font-semibold mb-4 text-blue-800">Product Management</h2>
-      <div class="mb-4">
-        <input id="productId" placeholder="Product ID (for update/delete)" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-      </div>
-      <div class="grid grid-cols-1 gap-2 mb-4">
-        <input id="productName" placeholder="Product Name" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-        <input id="productQty" placeholder="Quantity" type="number" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-        <input id="productPrice" placeholder="Price" type="number" step="0.01" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-        <input id="expiryDate" placeholder="Expiry Date (YYYY-MM-DD)" type="date" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-      </div>
-      <div class="flex gap-2">
-        <button onclick="addOrUpdateProduct()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-md transition duration-300 ease-in-out text-sm">Add/Update</button>
-        <button onclick="deleteProduct()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md transition duration-300 ease-in-out text-sm">Delete</button>
+
+    <div class="bg-white shadow overflow-hidden rounded-md">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-xl font-semibold mb-4 text-purple-800">Record Sale</h2>
+        <div class="grid grid-cols-1 gap-4 mb-4">
+          <input id="saleProductId" placeholder="Product ID" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          <input id="saleQty" placeholder="Quantity Sold" type="number" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+        </div>
+        <button onclick="recordSale()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">Record Sale</button>
       </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-600">
-      <h2 class="text-xl font-semibold mb-4 text-purple-800">Record Sale</h2>
-      <div class="grid grid-cols-1 gap-2 mb-4">
-        <input id="saleProductId" placeholder="Product ID" class="border-2 border-purple-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
-        <input id="saleQty" placeholder="Quantity Sold" type="number" class="border-2 border-purple-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
-      </div>
-      <button onclick="recordSale()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-md transition duration-300 ease-in-out text-sm">Record Sale</button>
-    </div>
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-600">
-      <h2 class="text-xl font-semibold mb-4 text-teal-800">Stock Report</h2>
-      <button onclick="showStock()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded shadow-md transition duration-300 ease-in-out text-sm w-full">View Full Stock</button>
-      <div class="mt-4">
-        <label for="searchStock" class="block text-gray-700 text-sm font-bold mb-2">Search Stock:</label>
-        <input type="text" id="searchStock" onkeyup="searchTable('stockTable', this.value)" placeholder="Enter product name or ID" class="border-2 border-teal-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm">
-      </div>
-      <div class="overflow-y-auto h-64 mt-2">
-        <table id="stockTable" class="w-full text-sm">
-          <thead>
-            <tr class="bg-gray-100 text-gray-700">
-              <th class="py-2 px-3 text-left">ID</th>
-              <th class="py-2 px-3 text-left">Name</th>
-              <th class="py-2 px-3 text-left">Qty</th>
-              <th class="py-2 px-3 text-left">Price</th>
-              <th class="py-2 px-3 text-left">Expiry</th>
-            </tr>
-          </thead>
-          <tbody id="stockTableBody">
-          </tbody>
-        </table>
+
+    <div class="bg-white shadow overflow-hidden rounded-md">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-xl font-semibold mb-4 text-teal-800">Stock Report</h2>
+        <button onclick="showStock()" class="w-full inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 mb-2">View Full Stock</button>
+        <input id="searchStock" onkeyup="searchTable('stockTable', this.value)" placeholder="Search stock..." class="shadow-sm focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md mb-2" />
+        <div class="overflow-y-auto max-h-64">
+          <table id="stockTable" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-indigo-600 md:col-span-2">
-      <h2 class="text-xl font-semibold mb-4 text-indigo-800">Sales Report</h2>
-      <div class="mb-2">
-        <button onclick="showSales('all')" class="bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm transition duration-300 ease-in-out text-sm mr-2">View All Sales</button>
-        <button onclick="showSales('today')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded shadow-sm transition duration-300 ease-in-out text-sm">View Today's Sales</button>
-      </div>
-      <div class="mt-4">
-        <label for="searchSales" class="block text-gray-700 text-sm font-bold mb-2">Search Sales (Product ID):</label>
-        <input type="text" id="searchSales" onkeyup="searchTable('salesTable', this.value)" placeholder="Enter product ID" class="border-2 border-indigo-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-      </div>
-      <div class="overflow-y-auto h-[400px] mt-2">
-        <table id="salesTable" class="w-full text-sm">
-          <thead>
-            <tr class="bg-gray-100 text-gray-700">
-              <th class="py-2 px-3 text-left">Product ID</th>
-              <th class="py-2 px-3 text-left">Name</th>
-              <th class="py-2 px-3 text-left">Quantity</th>
-              <th class="py-2 px-3 text-left">Date</th>
-              <th class="py-2 px-3 text-left">Remaining Stock</th>
-            </tr>
-          </thead>
-          <tbody id="salesTableBody">
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="bg-yellow-100 p-6 rounded-lg shadow-md border-l-4 border-yellow-600">
-      <h2 class="text-xl font-semibold mb-4 text-yellow-800">Alerts</h2>
-      <div id="expiryAlerts" class="mb-4">
-        <h3 class="text-lg font-semibold text-yellow-700 mb-2">Expiry (Next 7 Days)</h3>
-        <ul id="alertList" class="list-disc pl-6 text-yellow-800 text-sm"></ul>
-        <p id="noExpiryAlerts" class="text-sm text-gray-600 italic hidden">No products expiring soon.</p>
-      </div>
-      <div id="lowStockAlerts">
-        <h3 class="text-lg font-semibold text-red-700 mb-2">Low Stock</h3>
-        <ul id="lowStockList" class="list-disc pl-6 text-red-800 text-sm"></ul>
-        <p id="noLowStockAlerts" class="text-sm text-gray-600 italic hidden">All products are in sufficient stock.</p>
+
+    <div class="bg-white shadow overflow-hidden rounded-md md:col-span-2">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-800">Sales Report</h2>
+        <div class="mb-4 flex gap-2">
+          <button onclick="showSales('all')" class="inline-flex items-center px-4 py-2 border border-indigo-300 rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">View All Sales</button>
+          <button onclick="showSales('today')" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Today's Sales</button>
+        </div>
+        <input id="searchSales" onkeyup="searchTable('salesTable', this.value)" placeholder="Search sales..." class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md mb-2" />
+        <div class="overflow-y-auto max-h-64">
+          <table id="salesTable" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="bg-gray-100 p-4 rounded-lg shadow-md col-span-3">
-      <h2 class="text-lg font-semibold mb-2 text-gray-700">System Messages</h2>
-      <pre id="output" class="text-sm font-mono text-gray-800 h-32 overflow-y-auto whitespace-pre-wrap"></pre>
+
+    <div class="bg-white shadow overflow-hidden rounded-md">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-xl font-semibold mb-4 text-yellow-800">Alerts</h2>
+        <div id="expiryAlerts" class="mb-4">
+          <h3 class="text-lg font-semibold text-yellow-700 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i> Expiry (Next 7 Days)</h3>
+          <ul id="alertList" class="list-disc pl-6 text-yellow-800 text-sm"></ul>
+          <p id="noExpiryAlerts" class="text-gray-600 italic hidden">No expiring products soon.</p>
+        </div>
+        <div id="lowStockAlerts">
+          <h3 class="text-lg font-semibold text-red-700 mb-2"><i class="fas fa-box-open mr-2"></i> Low Stock</h3>
+          <ul id="lowStockList" class="list-disc pl-6 text-red-800 text-sm"></ul>
+          <p id="noLowStockAlerts" class="text-gray-600 italic hidden">All stock sufficient.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gray-100 shadow overflow-hidden rounded-md col-span-3">
+      <div class="px-4 py-5 sm:p-6">
+        <h2 class="text-lg font-semibold mb-2 text-gray-700"><i class="fas fa-info-circle mr-2"></i> System Messages</h2>
+        <pre id="output" class="mt-1 text-sm text-gray-800 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap bg-gray-50 p-3 rounded-md"></pre>
+      </div>
     </div>
   </div>
+
+  <!-- Your Main JavaScript -->
   <script>
     let products = JSON.parse(localStorage.getItem('products')) || [];
     let sales = JSON.parse(localStorage.getItem('sales')) || [];
+
     const synth = new Tone.Synth().toDestination();
+
     function saveData() {
-      localStorage.setItem('products', JSON.stringify(products));
-      localStorage.setItem('sales', JSON.stringify(sales));
+        localStorage.setItem('products', JSON.stringify(products));
+        localStorage.setItem('sales', JSON.stringify(sales));
     }
+
     function generateProductId() {
-      return Math.random().toString(36).substring(2, 15);
+        return Math.random().toString(36).substring(2, 15);
     }
+
     function addOrUpdateProduct() {
-      const id = document.getElementById("productId").value.trim();
-      const name = document.getElementById("productName").value.trim();
-      const qty = parseInt(document.getElementById("productQty").value);
-      const price = parseFloat(document.getElementById("productPrice").value);
-      const expiry = document.getElementById("expiryDate").value;
-      if (!name || isNaN(qty) || isNaN(price) || !expiry) {
-        showOutput("⚠️ Please fill all product details correctly.");
-        showNotification('error', 'Please fill all product details correctly.');
-        return;
-      }
-      const productData = { name, qty, price, expiry };
-      if (id) {
-        const index = products.findIndex(p => p.id === id);
-        if (index !== -1) {
-          products[index] = { id, ...productData };
-          showOutput(`✅ Updated product: ${name} (ID: ${id})`);
-          showNotification('success', `Updated product: ${name} (ID: ${id})`);
-        } else {
-          const newId = generateProductId();
-          products.push({ id: newId, ...productData });
-          showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
-          showNotification('success', `Added new product: ${name} (ID: ${newId})`);
+        const id = document.getElementById("productId").value.trim();
+        const name = document.getElementById("productName").value.trim();
+        const qty = parseInt(document.getElementById("productQty").value);
+        const price = parseFloat(document.getElementById("productPrice").value);
+        const expiry = document.getElementById("expiryDate").value;
+
+        if (!name || isNaN(qty) || isNaN(price) || !expiry) {
+            showOutput("⚠ Please fill all product details correctly.");
+            showNotification('error', 'Please fill all product details correctly.');
+            return;
         }
-      } else {
-        const newId = generateProductId();
-        products.push({ id: newId, ...productData });
-        showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
-        showNotification('success', `Added new product: ${name} (ID: ${newId})`);
-      }
-      clearProductForm();
-      saveData();
-      updateDashboard();
-      updateAlerts();
-    }
-    function deleteProduct() {
-      const idToDelete = document.getElementById("productId").value.trim();
-      if (!idToDelete) {
-        showOutput("⚠️ Please enter the Product ID to delete.");
-        showNotification('error', 'Please enter the Product ID to delete.');
-        return;
-      }
-      const initialLength = products.length;
-      const productIndex = products.findIndex(p => p.id === idToDelete);
-      if (productIndex !== -1) {
-        products.splice(productIndex, 1);
-        showOutput(`🗑️ Deleted product with ID: ${idToDelete}`);
-        showNotification('success', `Deleted product with ID: ${idToDelete}`);
+
+        const productData = { name, qty, price, expiry };
+        if (id) {
+            const index = products.findIndex(p => p.id === id);
+            if (index !== -1) {
+                products[index] = { id, ...productData };
+                showOutput(`✅ Updated product: ${name} (ID: ${id})`);
+                showNotification('success', `Updated product: ${name} (ID: ${id})`);
+            } else {
+                const newId = generateProductId();
+                products.push({ id: newId, ...productData });
+                showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
+                showNotification('success', `Added new product: ${name} (ID: ${newId})`);
+            }
+        } else {
+            const newId = generateProductId();
+            products.push({ id: newId, ...productData });
+            showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
+            showNotification('success', `Added new product: ${name} (ID: ${newId})`);
+        }
         clearProductForm();
         saveData();
         updateDashboard();
         updateAlerts();
-      } else {
-        showOutput(`❌ Product with ID: ${idToDelete} not found.`);
-        showNotification('error', `Product with ID: ${idToDelete} not found.`);
-      }
+        showStock();
     }
-    function recordSale() {
-      const id = document.getElementById("saleProductId").value.trim();
-      const qtySold = parseInt(document.getElementById("saleQty").value);
-      if (isNaN(qtySold) || qtySold <= 0) {
-        showOutput("⚠️ Please enter a valid quantity to sell.");
-        showNotification('error', 'Please enter a valid quantity to sell.');
-        return;
-      }
-      const productIndex = products.findIndex(p => p.id === id);
-      if (productIndex === -1) {
-        showOutput(`❌ Product with ID: ${id} not found.`);
-        showNotification('error', `Product with ID: ${id} not found.`);
-        return;
-      }
-      const product = products[productIndex];
-      if (product.qty < qtySold) {
-        showOutput(`❌ Insufficient stock for ${product.name}. Available: ${product.qty}`);
-        showNotification('error', `Insufficient stock for ${product.name}. Available: ${product.qty}`);
-        return;
-      }
-      // Update stock level
-      products[productIndex].qty -= qtySold;
-      // Record the sale
-      const sale = {
-        productId: id,
-        productName: product.name,
-        quantity: qtySold,
-        saleDate: new Date().toISOString(),
-      };
-      sales.push(sale);
-      showOutput(`💰 Sold ${qtySold} of ${product.name} (ID: ${id})`);
-      showNotification('success', `Sold ${qtySold} of ${product.name} (ID: ${id})`);
-      clearSaleForm();
-      saveData();
-      updateDashboard();
-      updateAlerts();
-      displayTodaysSales(); // Call this function after recording a sale
-    }
-    function showStock() {
-      const stockTableBody = document.getElementById("stockTableBody");
-      stockTableBody.innerHTML = '';
-      products.forEach(p => {
-        const row = stockTableBody.insertRow();
-        row.insertCell().textContent = p.id;
-        row.insertCell().textContent = p.name;
-        row.insertCell().textContent = p.qty;
-        row.insertCell().textContent = `$${p.price.toFixed(2)}`;
-        row.insertCell().textContent = p.expiry;
-      });
-    }
-    function showSales(filter = 'all') {
-      const salesTableBody = document.getElementById("salesTableBody");
-      salesTableBody.innerHTML = '';
-      const today = new Date().toISOString().split("T")[0];
-      const salesToDisplay = sales.filter(sale => {
-        if (filter === 'today') {
-          return sale.saleDate.split("T")[0] === today;
+
+    function deleteProduct() {
+        const idToDelete = document.getElementById("productId").value.trim();
+        if (!idToDelete) {
+            showOutput("⚠ Please enter the Product ID to delete.");
+            showNotification('error', 'Please enter the Product ID to delete.');
+            return;
         }
-        return true; // Show all sales if filter is not 'today'
-      });
-      salesToDisplay.forEach(s => {
-        const product = products.find(p => p.id === s.productId);
-        const row = salesTableBody.insertRow();
-        row.insertCell().textContent = s.productId;
-        row.insertCell().textContent = s.productName;
-        row.insertCell().textContent = s.quantity;
-        row.insertCell().textContent = new Date(s.saleDate).toLocaleDateString();
-        row.insertCell().textContent = product ? product.qty : 'N/A'; // Show current stock
-      });
-    }
-    function showOutput(message) {
-      const outputElement = document.getElementById("output");
-      outputElement.textContent += message + "\n";
-      outputElement.scrollTop = outputElement.scrollHeight;
-    }
-    function clearProductForm() {
-      document.getElementById("productId").value = '';
-      document.getElementById("productName").value = '';
-      document.getElementById("productQty").value = '';
-      document.getElementById("productPrice").value = '';
-      document.getElementById("expiryDate").value = '';
-    }
-    function clearSaleForm() {
-      document.getElementById("saleProductId").value = '';
-      document.getElementById("saleQty").value = '';
-    }
-    function updateAlerts() {
-      const alertList = document.getElementById("alertList");
-      const lowStockList = document.getElementById("lowStockList");
-      const expiringSoonCountElement = document.getElementById("expiringSoonCount");
-      const lowStockCountElement = document.getElementById("lowStockCount");
-      const noExpiryAlertsElement = document.getElementById("noExpiryAlerts");
-      const noLowStockAlertsElement = document.getElementById("noLowStockAlerts");
-      alertList.innerHTML = '';
-      lowStockList.innerHTML = '';
-      let expiringSoonCount = 0;
-      let lowStockCount = 0;
-      const today = new Date();
-      const sevenDaysLater = new Date(today);
-      sevenDaysLater.setDate(today.getDate() + 7);
-      products.forEach(p => {
-        const expiryDate = new Date(p.expiry);
-        const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 3600 * 24));
-        if (daysUntilExpiry <= 7 && daysUntilExpiry >= 0) {
-          const li = document.createElement("li");
-          li.textContent = `${p.name} (ID: ${p.id}) expires in ${daysUntilExpiry} days`;
-          alertList.appendChild(li);
-          expiringSoonCount++;
-          showNotification('warning', `${p.name} (ID: ${p.id}) expires in ${daysUntilExpiry} days`);
-          playSound('warning');
-        }
-        if (p.qty <= 5) {
-          const li = document.createElement("li");
-          li.textContent = `${p.name} (ID: ${p.id}) is running low on stock! (Current: ${p.qty})`;
-          lowStockList.appendChild(li);
-          lowStockCount++;
-          showNotification('error', `${p.name} (ID: ${p.id}) is running low on stock! (Current: ${p.qty})`);
-          playSound('error');
-        }
-      });
-      expiringSoonCountElement.textContent = expiringSoonCount;
-      lowStockCountElement.textContent = lowStockCount;
-      noExpiryAlertsElement.classList.toggle('hidden', expiringSoonCount > 0);
-      noLowStockAlertsElement.classList.toggle('hidden', lowStockCount > 0);
-      displayTodaysSales(); // Keep this here to update on the interval as well
-    }
-    function searchTable(tableId, input) {
-      let filter = input.toUpperCase();
-      let table = document.getElementById(tableId);
-      let tr = table.getElementsByTagName("tr");
-      for (let i = 0; i < tr.length; i++) {
-        let td = tr[i].getElementsByTagName("td")[0];
-        if (td) {
-          let textValue = td.textContent || td.innerText;
-          if (textValue.toUpperCase().indexOf(filter) > -1) {
-            tr[i].style.display = "";
-          } else {
-            tr[i].style.display = "none";
-          }
-        }
-      }
-    }
-    function updateDashboard() {
-      document.getElementById("totalProducts").textContent = products.length;
-      document.getElementById("lowStockCount").textContent = products.filter(p => p.qty <= 5).length;
-      document.getElementById("expiringSoonCount").textContent = products.filter(p => {
-        const expiryDate = new Date(p.expiry);
-        const today = new Date();
-        const diffDays = (expiryDate - today) / (1000 * 3600 * 24);
-        return diffDays <= 7 && diffDays >= 0;
-      }).length;
-      showStock();
-      showSales(); // This will now show all sales by default
-    }
-    function showNotification(type, message) {
-      const notification = document.createElement('div');
-      notification.classList.add('notification');
-      notification.classList.add(type);
-      notification.textContent = message;
-      document.body.appendChild(notification);
-      setTimeout(() => {
-        notification.remove();
-      }, 3000);
-    }
-    function playSound(type) {
-      if (type === 'warning') {
-        synth.triggerAttackRelease("C4", "8n");
-      } else if (type === 'error') {
-        synth.triggerAttackRelease("A2", "8n");
-      }
-    }
-    function displayTodaysSales() {
-        const today = new Date().toISOString().split("T")[0];
-        const todaysSales = sales.filter(sale => sale.saleDate.split("T")[0] === today);
-        const todaysSalesTableBody = document.getElementById("todaysSalesTableBody");
-        const dailySalesList = document.getElementById("dailySalesList"); // Get the UL element
-        const noDailySalesElement = document.getElementById("noDailySales");
-        todaysSalesTableBody.innerHTML = '';
-        dailySalesList.innerHTML = ''; // Clear the list each time
-        let totalSalesToday = 0;
-        if (todaysSales.length === 0) {
-            noDailySalesElement.classList.remove('hidden');
-            showOutput(`No sales recorded today.`);
-            const listItem = document.createElement('li');
-            listItem.textContent = 'No sales recorded today.';
-            dailySalesList.appendChild(listItem);
+        const productIndex = products.findIndex(p => p.id === idToDelete);
+        if (productIndex !== -1) {
+            products.splice(productIndex, 1);
+            showOutput(`🗑 Deleted product with ID: ${idToDelete}`);
+            showNotification('success', `Deleted product with ID: ${idToDelete}`);
+            clearProductForm();
+            saveData();
+            updateDashboard();
+            updateAlerts();
+            showStock();
         } else {
-            noDailySalesElement.classList.add('hidden');
-            todaysSales.forEach(sale => {
-                const product = products.find(p => p.id === sale.productId);
-                if (product) {
-                    const row = todaysSalesTableBody.insertRow();
-                    row.insertCell().textContent = sale.productId;
-                    row.insertCell().textContent = sale.productName;
-                    row.insertCell().textContent = sale.quantity;
-                    row.insertCell().textContent = product.qty;
-                    row.insertCell().textContent = product.expiry;
-                    totalSalesToday += sale.quantity;
-                    // Add a simple list item for the summary list
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `${sale.productName}: ${sale.quantity} sold`;
-                    dailySalesList.appendChild(listItem);
-                }
-            });
-            showOutput(`Total sales today: ${totalSalesToday}`);
+            showOutput(`❌ Product with ID: ${idToDelete} not found.`);
+            showNotification('error', `Product with ID: ${idToDelete} not found.`);
         }
     }
+
+    function recordSale() {
+        const id = document.getElementById("saleProductId").value.trim();
+        const qtySold = parseInt(document.getElementById("saleQty").value);
+        if (!id || isNaN(qtySold) || qtySold <= 0) {
+            showOutput("⚠ Please enter a valid product ID and quantity.");
+            showNotification('error', 'Please enter a valid product ID and quantity.');
+            return;
+        }
+        const productIndex = products.findIndex(p => p.id === id);
+        if (productIndex !== -1) {
+            if (products[productIndex].qty >= qtySold) {
+                products[productIndex].qty -= qtySold;
+                sales.push({
+                    id,
+                    name: products[productIndex].name,
+                    qty: qtySold,
+                    date: new Date().toISOString().split('T')[0],
+                    remaining: products[productIndex].qty
+                });
+                synth.triggerAttackRelease("C5", "8n");
+                showOutput(`💰 Recorded sale of ${qtySold} ${products[productIndex].name}(s).`);
+                showNotification('success', `Recorded sale of ${qtySold} ${products[productIndex].name}(s).`);
+                saveData();
+                updateDashboard();
+                updateAlerts();
+                showStock();
+                showSales('today');
+            } else {
+                showOutput("❌ Not enough stock available.");
+                showNotification('error', 'Not enough stock available.');
+            }
+        } else {
+            showOutput("❌ Product ID not found.");
+            showNotification('error', 'Product ID not found.');
+        }
+    }
+
+    function showStock() {
+        const tbody = document.getElementById("stockTableBody");
+        tbody.innerHTML = "";
+        products.forEach(product => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="py-1 px-3">${product.id}</td>
+                <td class="py-1 px-3">${product.name}</td>
+                <td class="py-1 px-3">${product.qty}</td>
+                <td class="py-1 px-3">$${product.price.toFixed(2)}</td>
+                <td class="py-1 px-3">${product.expiry}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showSales(filter) {
+        const tbody = document.getElementById("salesTableBody");
+        tbody.innerHTML = "";
+        const today = new Date().toISOString().split('T')[0];
+        const filteredSales = filter === 'today'
+            ? sales.filter(s => s.date === today)
+            : sales;
+        filteredSales.forEach(sale => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="py-1 px-3">${sale.id}</td>
+                <td class="py-1 px-3">${sale.name}</td>
+                <td class="py-1 px-3">${sale.qty}</td>
+                <td class="py-1 px-3">${sale.date}</td>
+                <td class="py-1 px-3">${sale.remaining}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateDashboard() {
+        document.getElementById("totalProducts").innerText = products.length;
+        document.getElementById("lowStockCount").innerText = products.filter(p => p.qty <= 5).length;
+        document.getElementById("expiringSoonCount").innerText = products.filter(p => {
+            const expiryDate = new Date(p.expiry);
+            const today = new Date();
+            const diffTime = expiryDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays >= 0 && diffDays <= 7;
+        }).length;
+    }
+
+    function updateAlerts() {
+        const alertList = document.getElementById("alertList");
+        const lowStockList = document.getElementById("lowStockList");
+        alertList.innerHTML = "";
+        lowStockList.innerHTML = "";
+
+        const expiringSoon = products.filter(p => {
+            const expiryDate = new Date(p.expiry);
+            const today = new Date();
+            const diffTime = expiryDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays >= 0 && diffDays <= 7;
+        });
+
+        const lowStock = products.filter(p => p.qty <= 5);
+
+        if (expiringSoon.length > 0) {
+            expiringSoon.forEach(p => {
+                const li = document.createElement("li");
+                li.innerText = `${p.name} (Exp: ${p.expiry})`;
+                alertList.appendChild(li);
+            });
+            document.getElementById("noExpiryAlerts").classList.add('hidden');
+        } else {
+            document.getElementById("noExpiryAlerts").classList.remove('hidden');
+        }
+
+        if (lowStock.length > 0) {
+            lowStock.forEach(p => {
+                const li = document.createElement("li");
+                li.innerText = `${p.name} (Stock: ${p.qty})`;
+                lowStockList.appendChild(li);
+            });
+            document.getElementById("noLowStockAlerts").classList.add('hidden');
+        } else {
+            document.getElementById("noLowStockAlerts").classList.remove('hidden');
+        }
+    }
+
+    function showOutput(message) {
+        const output = document.getElementById("output");
+        output.textContent += `${message}\n`;
+        output.scrollTop = output.scrollHeight;
+    }
+
+    function showNotification(type, message) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerText = message;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    function clearProductForm() {
+        document.getElementById("productId").value = '';
+        document.getElementById("productName").value = '';
+        document.getElementById("productQty").value = '';
+        document.getElementById("productPrice").value = '';
+        document.getElementById("expiryDate").value = '';
+    }
+
+    function searchTable(tableId, query) {
+        const table = document.getElementById(tableId);
+        const rows = table.getElementsByTagName("tr");
+        query = query.toLowerCase();
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let match = false;
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j] && cells[j].innerText.toLowerCase().includes(query)) {
+                    match = true;
+                    break;
+                }
+            }
+            rows[i].style.display = match ? "" : "none";
+        }
+    }
+
+    // On page load
     updateDashboard();
     updateAlerts();
-    setInterval(updateAlerts, 60000);
-  </script>
+    showStock();
+    showSales('all');
+</script><!-- <-- You will paste the JavaScript code I gave earlier here -->
+
 </body>
 </html>
