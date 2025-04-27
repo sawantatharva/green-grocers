@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -339,6 +340,7 @@
       const expiringSoonCountElement = document.getElementById("expiringSoonCount");
       const lowStockCountElement = document.getElementById("lowStockCount");
       const noExpiryAlertsElement = document.getElementById("noExpiryAlerts");
+      const noLowStockAlertsElement = document.getElementById("noLowStockAlerts");
       alertList.innerHTML = '';
       lowStockList.innerHTML = '';
       let expiringSoonCount = 0;
@@ -351,18 +353,18 @@
         const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 3600 * 24));
         if (daysUntilExpiry <= 7 && daysUntilExpiry >= 0) {
           const li = document.createElement("li");
-          li.textContent = `${p.name} expires in ${daysUntilExpiry} days`;
+          li.textContent = `${p.name} (ID: ${p.id}) expires in ${daysUntilExpiry} days`;
           alertList.appendChild(li);
           expiringSoonCount++;
-          showNotification('warning', `${p.name} expires in ${daysUntilExpiry} days`);
+          showNotification('warning', `${p.name} (ID: ${p.id}) expires in ${daysUntilExpiry} days`);
           playSound('warning');
         }
         if (p.qty <= 5) {
           const li = document.createElement("li");
-          li.textContent = `${p.name} is running low on stock! (Current: ${p.qty})`;
+          li.textContent = `${p.name} (ID: ${p.id}) is running low on stock! (Current: ${p.qty})`;
           lowStockList.appendChild(li);
           lowStockCount++;
-          showNotification('error', `${p.name} is running low on stock! (Current: ${p.qty})`);
+          showNotification('error', `${p.name} (ID: ${p.id}) is running low on stock! (Current: ${p.qty})`);
           playSound('error');
         }
       });
