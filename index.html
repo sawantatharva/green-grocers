@@ -96,7 +96,7 @@
       <div class="grid grid-cols-1 gap-2 mb-4">
         <input id="productName" placeholder="Product Name" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
         <input id="productQty" placeholder="Quantity" type="number" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-        <input id="productPrice" placeholder="Price" type="number" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+        <input id="productPrice" placeholder="Price" type="number" step="0.01" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
         <input id="expiryDate" placeholder="Expiry Date (YYYY-MM-DD)" type="date" class="border-2 border-blue-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
       </div>
       <div class="flex gap-2">
@@ -135,20 +135,25 @@
         </table>
       </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-indigo-600">
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-indigo-600 md:col-span-2">
       <h2 class="text-xl font-semibold mb-4 text-indigo-800">Sales Report</h2>
-      <button onclick="showSales()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow-md transition duration-300 ease-in-out text-sm w-full">View All Sales</button>
+      <div class="mb-2">
+        <button onclick="showSales('all')" class="bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm transition duration-300 ease-in-out text-sm mr-2">View All Sales</button>
+        <button onclick="showSales('today')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded shadow-sm transition duration-300 ease-in-out text-sm">View Today's Sales</button>
+      </div>
       <div class="mt-4">
         <label for="searchSales" class="block text-gray-700 text-sm font-bold mb-2">Search Sales (Product ID):</label>
         <input type="text" id="searchSales" onkeyup="searchTable('salesTable', this.value)" placeholder="Enter product ID" class="border-2 border-indigo-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
       </div>
-      <div class="overflow-y-auto h-64 mt-2">
+      <div class="overflow-y-auto h-[400px] mt-2">
         <table id="salesTable" class="w-full text-sm">
           <thead>
             <tr class="bg-gray-100 text-gray-700">
               <th class="py-2 px-3 text-left">Product ID</th>
+              <th class="py-2 px-3 text-left">Name</th>
               <th class="py-2 px-3 text-left">Quantity</th>
               <th class="py-2 px-3 text-left">Date</th>
+              <th class="py-2 px-3 text-left">Remaining Stock</th>
             </tr>
           </thead>
           <tbody id="salesTableBody">
@@ -177,13 +182,13 @@
   <script>
     let products = JSON.parse(localStorage.getItem('products')) || [];
     let sales = JSON.parse(localStorage.getItem('sales')) || [];
-    let notifications = [];
     const synth = new Tone.Synth().toDestination();
     function saveData() {
       localStorage.setItem('products', JSON.stringify(products));
       localStorage.setItem('sales', JSON.stringify(sales));
-      localStorage.setItem('notifications', JSON.stringify(notifications));
-      updateDashboard();
+    }
+    function generateProductId() {
+      return Math.random().toString(36).substring(2, 15);
     }
     function addOrUpdateProduct() {
       const id = document.getElementById("productId").value.trim();
@@ -196,27 +201,29 @@
         showNotification('error', 'Please fill all product details correctly.');
         return;
       }
+      const productData = { name, qty, price, expiry };
       if (id) {
         const index = products.findIndex(p => p.id === id);
         if (index !== -1) {
-          products[index] = { id, name, qty, price, expiry };
+          products[index] = { id, ...productData };
           showOutput(`✅ Updated product: ${name} (ID: ${id})`);
           showNotification('success', `Updated product: ${name} (ID: ${id})`);
         } else {
-          products.push({ id: generateProductId(), name, qty, price, expiry });
-          showOutput(`✅ Added new product: ${name}`);
-          showNotification('success', `Added new product: ${name}`);
+          const newId = generateProductId();
+          products.push({ id: newId, ...productData });
+          showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
+          showNotification('success', `Added new product: ${name} (ID: ${newId})`);
         }
       } else {
-        products.push({ id: generateProductId(), name, qty, price, expiry });
-        showOutput(`✅ Added new product: ${name}`);
-        showNotification('success', `Added new product: ${name}`);
+        const newId = generateProductId();
+        products.push({ id: newId, ...productData });
+        showOutput(`✅ Added new product: ${name} (ID: ${newId})`);
+        showNotification('success', `Added new product: ${name} (ID: ${newId})`);
       }
       clearProductForm();
       saveData();
-    }
-    function generateProductId() {
-      return Math.random().toString(36).substring(2, 15);
+      updateDashboard();
+      updateAlerts();
     }
     function deleteProduct() {
       const idToDelete = document.getElementById("productId").value.trim();
@@ -226,12 +233,15 @@
         return;
       }
       const initialLength = products.length;
-      products = products.filter(p => p.id !== idToDelete);
-      if (products.length < initialLength) {
+      const productIndex = products.findIndex(p => p.id === idToDelete);
+      if (productIndex !== -1) {
+        products.splice(productIndex, 1);
         showOutput(`🗑️ Deleted product with ID: ${idToDelete}`);
         showNotification('success', `Deleted product with ID: ${idToDelete}`);
         clearProductForm();
         saveData();
+        updateDashboard();
+        updateAlerts();
       } else {
         showOutput(`❌ Product with ID: ${idToDelete} not found.`);
         showNotification('error', `Product with ID: ${idToDelete} not found.`);
@@ -240,28 +250,40 @@
     function recordSale() {
       const id = document.getElementById("saleProductId").value.trim();
       const qtySold = parseInt(document.getElementById("saleQty").value);
-      const product = products.find(p => p.id === id);
-      if (!product) {
-        showOutput(`❌ Product with ID: ${id} not found.`);
-        showNotification('error', `Product with ID: ${id} not found.`);
-        return;
-      }
       if (isNaN(qtySold) || qtySold <= 0) {
         showOutput("⚠️ Please enter a valid quantity to sell.");
         showNotification('error', 'Please enter a valid quantity to sell.');
         return;
       }
+      const productIndex = products.findIndex(p => p.id === id);
+      if (productIndex === -1) {
+        showOutput(`❌ Product with ID: ${id} not found.`);
+        showNotification('error', `Product with ID: ${id} not found.`);
+        return;
+      }
+      const product = products[productIndex];
       if (product.qty < qtySold) {
         showOutput(`❌ Insufficient stock for ${product.name}. Available: ${product.qty}`);
         showNotification('error', `Insufficient stock for ${product.name}. Available: ${product.qty}`);
         return;
       }
-      product.qty -= qtySold;
-      sales.push({ productId: id, productName: product.name, quantity: qtySold, saleDate: new Date().toISOString() });
+      // Update stock level
+      products[productIndex].qty -= qtySold;
+      // Record the sale
+      const sale = {
+        productId: id,
+        productName: product.name,
+        quantity: qtySold,
+        saleDate: new Date().toISOString(),
+      };
+      sales.push(sale);
       showOutput(`💰 Sold ${qtySold} of ${product.name} (ID: ${id})`);
       showNotification('success', `Sold ${qtySold} of ${product.name} (ID: ${id})`);
       clearSaleForm();
       saveData();
+      updateDashboard();
+      updateAlerts();
+      displayTodaysSales(); // Call this function after recording a sale
     }
     function showStock() {
       const stockTableBody = document.getElementById("stockTableBody");
@@ -275,18 +297,30 @@
         row.insertCell().textContent = p.expiry;
       });
     }
-    function showSales() {
+    function showSales(filter = 'all') {
       const salesTableBody = document.getElementById("salesTableBody");
       salesTableBody.innerHTML = '';
-      sales.forEach(s => {
+      const today = new Date().toISOString().split("T")[0];
+      const salesToDisplay = sales.filter(sale => {
+        if (filter === 'today') {
+          return sale.saleDate.split("T")[0] === today;
+        }
+        return true; // Show all sales if filter is not 'today'
+      });
+      salesToDisplay.forEach(s => {
+        const product = products.find(p => p.id === s.productId);
         const row = salesTableBody.insertRow();
         row.insertCell().textContent = s.productId;
+        row.insertCell().textContent = s.productName;
         row.insertCell().textContent = s.quantity;
         row.insertCell().textContent = new Date(s.saleDate).toLocaleDateString();
+        row.insertCell().textContent = product ? product.qty : 'N/A'; // Show current stock
       });
     }
     function showOutput(message) {
-      document.getElementById("output").textContent = message;
+      const outputElement = document.getElementById("output");
+      outputElement.textContent += message + "\n";
+      outputElement.scrollTop = outputElement.scrollHeight;
     }
     function clearProductForm() {
       document.getElementById("productId").value = '';
@@ -314,12 +348,13 @@
       sevenDaysLater.setDate(today.getDate() + 7);
       products.forEach(p => {
         const expiryDate = new Date(p.expiry);
-        if (expiryDate <= sevenDaysLater && expiryDate >= today) {
+        const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 3600 * 24));
+        if (daysUntilExpiry <= 7 && daysUntilExpiry >= 0) {
           const li = document.createElement("li");
-          li.textContent = `${p.name} expires in ${Math.ceil((expiryDate - today) / (1000 * 3600 * 24))} days`;
+          li.textContent = `${p.name} expires in ${daysUntilExpiry} days`;
           alertList.appendChild(li);
           expiringSoonCount++;
-          showNotification('warning', `${p.name} expires in ${Math.ceil((expiryDate - today) / (1000 * 3600 * 24))} days`);
+          showNotification('warning', `${p.name} expires in ${daysUntilExpiry} days`);
           playSound('warning');
         }
         if (p.qty <= 5) {
@@ -335,7 +370,7 @@
       lowStockCountElement.textContent = lowStockCount;
       noExpiryAlertsElement.classList.toggle('hidden', expiringSoonCount > 0);
       noLowStockAlertsElement.classList.toggle('hidden', lowStockCount > 0);
-      updateDashboard();
+      displayTodaysSales(); // Keep this here to update on the interval as well
     }
     function searchTable(tableId, input) {
       let filter = input.toUpperCase();
@@ -363,7 +398,7 @@
         return diffDays <= 7 && diffDays >= 0;
       }).length;
       showStock();
-      showSales();
+      showSales(); // This will now show all sales by default
     }
     function showNotification(type, message) {
       const notification = document.createElement('div');
@@ -371,10 +406,8 @@
       notification.classList.add(type);
       notification.textContent = message;
       document.body.appendChild(notification);
-      notifications.push(notification);
       setTimeout(() => {
         notification.remove();
-        notifications = notifications.filter(n => n !== notification);
       }, 3000);
     }
     function playSound(type) {
@@ -383,6 +416,42 @@
       } else if (type === 'error') {
         synth.triggerAttackRelease("A2", "8n");
       }
+    }
+    function displayTodaysSales() {
+        const today = new Date().toISOString().split("T")[0];
+        const todaysSales = sales.filter(sale => sale.saleDate.split("T")[0] === today);
+        const todaysSalesTableBody = document.getElementById("todaysSalesTableBody");
+        const dailySalesList = document.getElementById("dailySalesList"); // Get the UL element
+        const noDailySalesElement = document.getElementById("noDailySales");
+        todaysSalesTableBody.innerHTML = '';
+        dailySalesList.innerHTML = ''; // Clear the list each time
+        let totalSalesToday = 0;
+        if (todaysSales.length === 0) {
+            noDailySalesElement.classList.remove('hidden');
+            showOutput(`No sales recorded today.`);
+            const listItem = document.createElement('li');
+            listItem.textContent = 'No sales recorded today.';
+            dailySalesList.appendChild(listItem);
+        } else {
+            noDailySalesElement.classList.add('hidden');
+            todaysSales.forEach(sale => {
+                const product = products.find(p => p.id === sale.productId);
+                if (product) {
+                    const row = todaysSalesTableBody.insertRow();
+                    row.insertCell().textContent = sale.productId;
+                    row.insertCell().textContent = sale.productName;
+                    row.insertCell().textContent = sale.quantity;
+                    row.insertCell().textContent = product.qty;
+                    row.insertCell().textContent = product.expiry;
+                    totalSalesToday += sale.quantity;
+                    // Add a simple list item for the summary list
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${sale.productName}: ${sale.quantity} sold`;
+                    dailySalesList.appendChild(listItem);
+                }
+            });
+            showOutput(`Total sales today: ${totalSalesToday}`);
+        }
     }
     updateDashboard();
     updateAlerts();
